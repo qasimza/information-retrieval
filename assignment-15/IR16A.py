@@ -1,0 +1,89 @@
+# IR16A.py CS5154/6054 cheng 2022
+# Comparing classifiers on documents as binary, count, or tfidf vector
+# on three random segments of bible.txt from the first, third, and last fifths
+# 100 test documents are at the center of 1000 training documents
+# Only the four in IIR Chapters 13 and 14 are implemented
+# you need to add the ten others imported like you did for IR15A.py
+# Usage: python IR16A.py
+
+import numpy as np
+import random
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import BernoulliNB
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import NearestCentroid
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import ExtraTreeClassifier
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import Perceptron
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import accuracy_score
+
+f = open("bible.txt", "r")
+docs = f.readlines()
+f.close()
+N =len(docs)
+N1 = N // 5 - 1100
+c0 = random.randrange(N1)
+c1 = 2 * N // 5 + random.randrange(N1)
+c2 = N - 1100 - random.randrange(N1)
+print('Random segments at -', c0, c1, c2)
+
+trainX = np.concatenate([docs[c0:c0+500], docs[c0+600:c0+1100],
+docs[c1:c1+500], docs[c1+600:c1+1100], docs[c2:c2+500], docs[c2+600:c2+1100]])
+y = np.concatenate([np.zeros(1000, dtype=np.int16), np.ones(1000, dtype=np.int16), np.full(1000, 2, dtype=np.int16)])
+testX = np.concatenate([docs[c0+500:c0+600], docs[c1+500:c1+600], docs[c2+500:c2+600]])
+testY = np.concatenate([np.zeros(100, dtype=np.int16), np.ones(100, dtype=np.int16), np.full(100, 2, dtype=np.int16)])
+
+# documents as binary vectors
+cv = CountVectorizer(binary=True, max_df=0.4, min_df=4)
+X0 = cv.fit_transform(trainX).toarray()
+T0 = cv.transform(testX).toarray()
+
+# documents as count vectors
+cv = CountVectorizer(max_df=0.4, min_df=4)
+X1 = cv.fit_transform(trainX).toarray()
+T1 = cv.transform(testX).toarray()
+
+# documents as tfidf vectors
+cv = TfidfVectorizer(max_df=0.4, min_df=4)
+X2 = cv.fit_transform(trainX).toarray()
+T2 = cv.transform(testX).toarray()
+
+model = BernoulliNB()
+model.fit(X0, y)
+pred = model.predict(T0)
+A0 = accuracy_score(testY, pred)
+print ('BernoulliNB -', A0)
+
+model = MultinomialNB()
+model.fit(X0, y)
+A0 = accuracy_score(testY, model.predict(T0))
+model.fit(X1, y)
+A1 = accuracy_score(testY, model.predict(T1))
+print ('MultinomialNB -', A0, A1)
+
+model = KNeighborsClassifier()
+model.fit(X0, y)
+A0 = accuracy_score(testY, model.predict(T0))
+model.fit(X1, y)
+A1 = accuracy_score(testY, model.predict(T1))
+model.fit(X2, y)
+A2 = accuracy_score(testY, model.predict(T2))
+print ('KNN -', A0, A1, A2)
+
+model = NearestCentroid()
+model.fit(X0, y)
+A0 = accuracy_score(testY, model.predict(T0))
+model.fit(X1, y)
+A1 = accuracy_score(testY, model.predict(T1))
+model.fit(X2, y)
+A2 = accuracy_score(testY, model.predict(T2))
+print ('Rocchio -', A0, A1, A2)
